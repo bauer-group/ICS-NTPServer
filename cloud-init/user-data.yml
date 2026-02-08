@@ -50,19 +50,33 @@ write_files:
       # Chrony NTP Server - time.bauer-group.com
       # =======================================================================
 
-      # Upstream NTP Server (deutsche Zeitquellen)
-      server ptbtime1.ptb.de iburst prefer
-      server ptbtime2.ptb.de iburst
-      server ptbtime3.ptb.de iburst
+      # Upstream NTP Server (deutsche Zeitquellen, NTS wo verfuegbar)
+      server ptbtime1.ptb.de iburst nts prefer
+      server ptbtime2.ptb.de iburst nts
+      server ptbtime3.ptb.de iburst nts
       server ntps1-0.eecsit.tu-berlin.de iburst
       server ntp1.fau.de iburst
       server zeit.fu-berlin.de iburst
 
+      # NTS-Zertifikate cachen (persistiert ueber Neustarts)
+      ntsdumpdir /var/lib/chrony
+
       # Zeitdifferenz-Datei (fuer Neustarts)
       driftfile /var/lib/chrony/chrony.drift
 
-      # NTP-Dienst fuer alle Clients im Netzwerk bereitstellen
+      # Messdaten ueber Neustarts persistieren
+      dumpdir /var/lib/chrony
+
+      # NTP-Dienst fuer alle Clients bereitstellen
       allow all
+
+      # Rate Limiting: Schutz vor Amplification-Angriffen (Pool-tauglich)
+      # interval -4 = min. 1/16 Sek. zwischen Paketen pro Client (~16 Pkt/Sek)
+      # burst 16 = kurze Bursts erlauben, leak 2 = sanftes Throttling
+      ratelimit interval -4 burst 16 leak 2
+
+      # Client-Log: 128 MB = ca. 2 Mio. Clients (fuer NTP Pool ausreichend)
+      clientloglimit 134217728
 
       # Logging
       log tracking measurements statistics
