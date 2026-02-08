@@ -104,9 +104,9 @@ write_files:
       // Alle installierten Pakete aktualisieren (nicht nur Sicherheit)
       Unattended-Upgrade::DevRelease "auto";
 
-      // Automatischer Reboot wenn noetig (03:00 Uhr)
+      // Automatischer Reboot wenn noetig (03:25 Uhr, nach apt-daily-upgrade)
       Unattended-Upgrade::Automatic-Reboot "true";
-      Unattended-Upgrade::Automatic-Reboot-Time "03:00";
+      Unattended-Upgrade::Automatic-Reboot-Time "03:25";
 
       // Ungenutzte Abhaengigkeiten entfernen
       Unattended-Upgrade::Remove-Unused-Dependencies "true";
@@ -132,6 +132,26 @@ write_files:
     content: |
       $nrconf{restart} = 'a';
 
+  # systemd Timer: apt-daily auf 03:00 UTC legen (Paketlisten aktualisieren)
+  - path: /etc/systemd/system/apt-daily.timer.d/override.conf
+    owner: root:root
+    permissions: "0644"
+    content: |
+      [Timer]
+      OnCalendar=
+      OnCalendar=*-*-* 03:00
+      RandomizedDelaySec=0
+
+  # systemd Timer: apt-daily-upgrade auf 03:10 UTC legen (Pakete installieren)
+  - path: /etc/systemd/system/apt-daily-upgrade.timer.d/override.conf
+    owner: root:root
+    permissions: "0644"
+    content: |
+      [Timer]
+      OnCalendar=
+      OnCalendar=*-*-* 03:10
+      RandomizedDelaySec=0
+
 # --- Befehle nach der Installation ------------------------------------------
 runcmd:
   # Firewall konfigurieren
@@ -149,7 +169,10 @@ runcmd:
   - systemctl enable unattended-upgrades
   - systemctl restart unattended-upgrades
 
-  # Timer fuer automatische Updates aktivieren
+  # Timer-Overrides laden und aktivieren
+  - mkdir -p /etc/systemd/system/apt-daily.timer.d
+  - mkdir -p /etc/systemd/system/apt-daily-upgrade.timer.d
+  - systemctl daemon-reload
   - systemctl enable apt-daily.timer
   - systemctl enable apt-daily-upgrade.timer
 

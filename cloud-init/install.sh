@@ -112,9 +112,9 @@ Unattended-Upgrade::Allowed-Origins {
 // Alle installierten Pakete aktualisieren (nicht nur Sicherheit)
 Unattended-Upgrade::DevRelease "auto";
 
-// Automatischer Reboot wenn noetig (03:00 Uhr)
+// Automatischer Reboot wenn noetig (03:25 Uhr, nach apt-daily-upgrade)
 Unattended-Upgrade::Automatic-Reboot "true";
-Unattended-Upgrade::Automatic-Reboot-Time "03:00";
+Unattended-Upgrade::Automatic-Reboot-Time "03:25";
 
 // Ungenutzte Abhaengigkeiten entfernen
 Unattended-Upgrade::Remove-Unused-Dependencies "true";
@@ -139,6 +139,25 @@ NEEDRESTART_CONF
 
 systemctl enable unattended-upgrades
 systemctl restart unattended-upgrades
+
+# systemd Timer: Alles ins Wartungsfenster 03:00-03:30 UTC legen
+mkdir -p /etc/systemd/system/apt-daily.timer.d
+cat > /etc/systemd/system/apt-daily.timer.d/override.conf <<'TIMER_DAILY'
+[Timer]
+OnCalendar=
+OnCalendar=*-*-* 03:00
+RandomizedDelaySec=0
+TIMER_DAILY
+
+mkdir -p /etc/systemd/system/apt-daily-upgrade.timer.d
+cat > /etc/systemd/system/apt-daily-upgrade.timer.d/override.conf <<'TIMER_UPGRADE'
+[Timer]
+OnCalendar=
+OnCalendar=*-*-* 03:10
+RandomizedDelaySec=0
+TIMER_UPGRADE
+
+systemctl daemon-reload
 systemctl enable apt-daily.timer
 systemctl enable apt-daily-upgrade.timer
 
@@ -172,6 +191,6 @@ echo ""
 echo "Firewall:"
 ufw status
 echo ""
-echo "Naechster automatischer Reboot (falls noetig): 03:00 Uhr"
+echo "Wartungsfenster: 03:00-03:30 UTC (apt-update, upgrade, reboot)"
 echo "Unattended-Upgrades Log: /var/log/unattended-upgrades/"
 echo "Chrony Log: /var/log/chrony/"
