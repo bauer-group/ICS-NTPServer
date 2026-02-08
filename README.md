@@ -76,4 +76,4 @@ Details, Monitoring-Checks und Health-Check-Script:
 - **Client-Log** — Tracking von bis zu 2 Mio. Clients (128 MB)
 - **Persistenz** — Drift- und Messdaten ueberleben Neustarts
 - **Auto-Updates** — Taegliche OS-Updates mit automatischem Reboot
-- **Firewall** — UFW mit ausschliesslich SSH + NTP (123/udp)
+- **Keine Firewall** — Kein iptables-Overhead, nur SSH + NTP lauschen auf dem Host

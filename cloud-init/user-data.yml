@@ -37,7 +37,6 @@ packages:
   - unattended-upgrades
   - apt-listchanges
   - needrestart
-  - ufw
 
 # --- NTP (Chrony) Konfiguration ---------------------------------------------
 write_files:
@@ -154,13 +153,6 @@ write_files:
 
 # --- Befehle nach der Installation ------------------------------------------
 runcmd:
-  # Firewall konfigurieren
-  - ufw default deny incoming
-  - ufw default allow outgoing
-  - ufw allow ssh
-  - ufw allow 123/udp comment "NTP"
-  - ufw --force enable
-
   # Chrony aktivieren und starten
   - systemctl enable chrony
   - systemctl restart chrony

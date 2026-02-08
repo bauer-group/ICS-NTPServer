@@ -33,7 +33,7 @@ echo ""
 
 # --- Pakete installieren -----------------------------------------------------
 
-echo "[1/5] Pakete aktualisieren und installieren..."
+echo "[1/4] Pakete aktualisieren und installieren..."
 export DEBIAN_FRONTEND=noninteractive
 apt-get update -q
 apt-get upgrade -y -q
@@ -41,12 +41,11 @@ apt-get install -y -q \
     chrony \
     unattended-upgrades \
     apt-listchanges \
-    needrestart \
-    ufw
+    needrestart
 
 # --- Chrony konfigurieren ----------------------------------------------------
 
-echo "[2/5] Chrony NTP Server konfigurieren..."
+echo "[2/4] Chrony NTP Server konfigurieren..."
 cat > /etc/chrony/chrony.conf <<'CHRONY_CONF'
 # =======================================================================
 # Chrony NTP Server - time.bauer-group.com
@@ -99,7 +98,7 @@ chronyc makestep
 
 # --- Automatische Updates konfigurieren --------------------------------------
 
-echo "[3/5] Automatische Updates konfigurieren..."
+echo "[3/4] Automatische Updates konfigurieren..."
 cat > /etc/apt/apt.conf.d/50unattended-upgrades <<'UNATTENDED_CONF'
 Unattended-Upgrade::Allowed-Origins {
     "${distro_id}:${distro_codename}";
@@ -161,18 +160,9 @@ systemctl daemon-reload
 systemctl enable apt-daily.timer
 systemctl enable apt-daily-upgrade.timer
 
-# --- Firewall konfigurieren --------------------------------------------------
-
-echo "[4/5] Firewall konfigurieren..."
-ufw default deny incoming
-ufw default allow outgoing
-ufw allow ssh
-ufw allow 123/udp comment "NTP"
-ufw --force enable
-
 # --- Timezone setzen ----------------------------------------------------------
 
-echo "[5/5] Timezone auf UTC setzen..."
+echo "[4/4] Timezone auf UTC setzen..."
 timedatectl set-timezone Etc/UTC
 
 # --- Abschluss ---------------------------------------------------------------
@@ -187,9 +177,6 @@ chronyc tracking
 echo ""
 echo "Quellen:"
 chronyc sources -v
-echo ""
-echo "Firewall:"
-ufw status
 echo ""
 echo "Wartungsfenster: 03:00-03:30 UTC (apt-update, upgrade, reboot)"
 echo "Unattended-Upgrades Log: /var/log/unattended-upgrades/"
