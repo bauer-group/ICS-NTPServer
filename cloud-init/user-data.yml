@@ -193,12 +193,23 @@ write_files:
       printf "  %-18s %s\n" "Chrony-Log:" "/var/log/chrony/"
       echo ""
 
+  # snapd-Neuinstallation verhindern
+  - path: /etc/apt/preferences.d/no-snapd
+    owner: root:root
+    permissions: "0644"
+    content: |
+      Package: snapd
+      Pin: release *
+      Pin-Priority: -1
+
 # --- Befehle nach der Installation ------------------------------------------
 runcmd:
-  # Standard-NTP-Dienste entfernen (Konflikt mit Chrony)
+  # Standard-NTP-Dienste und unnoetige Pakete entfernen
   - systemctl stop systemd-timesyncd || true
   - systemctl disable systemd-timesyncd || true
-  - apt-get remove -y -q ntp ntpsec || true
+  - apt-get remove -y -q --purge ntp ntpsec snapd modemmanager udisks2 multipath-tools policykit-1 || true
+  - apt-get autoremove -y -q
+  - rm -rf /snap /var/snap /var/lib/snapd /var/cache/snapd || true
 
   # Chrony aktivieren und starten
   - systemctl enable chrony

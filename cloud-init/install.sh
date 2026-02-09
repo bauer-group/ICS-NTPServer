@@ -38,13 +38,28 @@ echo ""
 
 # --- Pakete installieren -----------------------------------------------------
 
-echo "[1/7] Bestehende NTP-Dienste entfernen..."
+echo "[1/8] Bestehende NTP-Dienste und unnoetige Pakete entfernen..."
 export DEBIAN_FRONTEND=noninteractive
+
+# Standard-NTP-Dienste deaktivieren
 systemctl stop systemd-timesyncd 2>/dev/null || true
 systemctl disable systemd-timesyncd 2>/dev/null || true
-apt-get remove -y -q ntp ntpsec 2>/dev/null || true
 
-echo "[2/7] Pakete aktualisieren und installieren..."
+# Unnoetige Dienste deaktivieren und Pakete entfernen
+apt-get remove -y -q --purge \
+    ntp ntpsec \
+    snapd \
+    modemmanager \
+    udisks2 \
+    multipath-tools \
+    policykit-1 \
+    2>/dev/null || true
+apt-get autoremove -y -q
+
+# snapd-Reste aufraeumen
+rm -rf /snap /var/snap /var/lib/snapd /var/cache/snapd 2>/dev/null || true
+
+echo "[2/8] Pakete aktualisieren und installieren..."
 apt-get update -q
 apt-get upgrade -y -q
 apt-get install -y -q \
@@ -55,7 +70,7 @@ apt-get install -y -q \
 
 # --- Chrony konfigurieren ----------------------------------------------------
 
-echo "[3/7] Chrony NTP Server konfigurieren..."
+echo "[3/8] Chrony NTP Server konfigurieren..."
 cat > /etc/chrony/chrony.conf <<'CHRONY_CONF'
 # =======================================================================
 # Chrony NTP Server - time.bauer-group.com
@@ -108,7 +123,7 @@ chronyc makestep
 
 # --- Automatische Updates konfigurieren --------------------------------------
 
-echo "[4/7] Automatische Updates konfigurieren..."
+echo "[4/8] Automatische Updates konfigurieren..."
 cat > /etc/apt/apt.conf.d/50unattended-upgrades <<'UNATTENDED_CONF'
 Unattended-Upgrade::Allowed-Origins {
     "${distro_id}:${distro_codename}";
@@ -172,14 +187,14 @@ systemctl enable apt-daily-upgrade.timer
 
 # --- System-Einstellungen -----------------------------------------------------
 
-echo "[5/7] Hostname, Timezone und Locale setzen..."
+echo "[5/8] Hostname, Timezone und Locale setzen..."
 hostnamectl set-hostname "${NTP_HOSTNAME}"
 timedatectl set-timezone Etc/UTC
 localectl set-locale LANG=en_US.UTF-8
 
 # --- Login-Banner (MOTD) -----------------------------------------------------
 
-echo "[6/7] Login-Banner einrichten..."
+echo "[6/8] Login-Banner einrichten..."
 
 # Standard-MOTD aufraeumen (Werbung, irrelevante Hinweise)
 chmod -x /etc/update-motd.d/10-help-text 2>/dev/null || true
@@ -234,7 +249,14 @@ chmod +x /etc/update-motd.d/60-ntp-status
 
 # --- Abschluss ---------------------------------------------------------------
 
-echo "[7/7] Verifizierung..."
+echo "[7/8] Snap-Neuinstallation verhindern..."
+cat > /etc/apt/preferences.d/no-snapd <<'NO_SNAPD'
+Package: snapd
+Pin: release *
+Pin-Priority: -1
+NO_SNAPD
+
+echo "[8/8] Verifizierung..."
 echo ""
 echo "============================================="
 echo " Setup abgeschlossen!"
