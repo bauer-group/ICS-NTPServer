@@ -151,6 +151,48 @@ write_files:
       OnCalendar=*-*-* 03:10
       RandomizedDelaySec=0
 
+  # Login-Banner: NTP-Status bei SSH-Login anzeigen
+  - path: /etc/update-motd.d/60-ntp-status
+    owner: root:root
+    permissions: "0755"
+    content: |
+      #!/usr/bin/env bash
+      # NTP Server Status - Login Banner
+
+      echo ""
+      echo "========================================"
+      echo "  $(hostname) — NTP Server"
+      echo "========================================"
+      echo ""
+
+      # --- Sync-Status ---
+      tracking=$(chronyc tracking 2>/dev/null)
+      if [ $? -eq 0 ]; then
+          source=$(echo "$tracking" | awk -F': ' '/^Reference ID/{print $2}')
+          stratum=$(echo "$tracking" | awk -F': ' '/^Stratum/{print $2}')
+          offset=$(echo "$tracking" | awk -F': ' '/^Last offset/{print $2}')
+          leap=$(echo "$tracking" | awk -F': ' '/^Leap status/{print $2}')
+
+          printf "  %-18s %s\n" "Sync-Quelle:" "$source"
+          printf "  %-18s %s\n" "Stratum:" "$stratum"
+          printf "  %-18s %s\n" "Offset:" "$offset"
+          printf "  %-18s %s\n" "Leap-Status:" "$leap"
+      else
+          echo "  Chrony nicht erreichbar"
+      fi
+
+      echo ""
+      echo "  Upstream-Quellen:"
+      echo "  ----------------------------------------"
+      chronyc sources 2>/dev/null | grep '^\^' | while read -r line; do
+          echo "  $line"
+      done
+
+      echo ""
+      printf "  %-18s %s\n" "Wartungsfenster:" "03:00-03:30 UTC"
+      printf "  %-18s %s\n" "Chrony-Log:" "/var/log/chrony/"
+      echo ""
+
 # --- Befehle nach der Installation ------------------------------------------
 runcmd:
   # Standard-NTP-Dienste entfernen (Konflikt mit Chrony)
@@ -175,6 +217,12 @@ runcmd:
 
   # Initiale Zeitsynchronisation erzwingen
   - chronyc makestep
+
+  # Standard-MOTD aufraeumen (Ubuntu-Werbung etc.)
+  - chmod -x /etc/update-motd.d/10-help-text 2>/dev/null || true
+  - chmod -x /etc/update-motd.d/50-motd-news 2>/dev/null || true
+  - chmod -x /etc/update-motd.d/88-esm-announce 2>/dev/null || true
+  - chmod -x /etc/update-motd.d/91-contract-ua-esm-status 2>/dev/null || true
 
 # --- Endgueltige Nachricht --------------------------------------------------
 final_message: "NTP Server Setup abgeschlossen nach $UPTIME Sekunden."

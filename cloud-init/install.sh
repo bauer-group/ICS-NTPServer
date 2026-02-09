@@ -38,13 +38,13 @@ echo ""
 
 # --- Pakete installieren -----------------------------------------------------
 
-echo "[1/6] Bestehende NTP-Dienste entfernen..."
+echo "[1/7] Bestehende NTP-Dienste entfernen..."
 export DEBIAN_FRONTEND=noninteractive
 systemctl stop systemd-timesyncd 2>/dev/null || true
 systemctl disable systemd-timesyncd 2>/dev/null || true
 apt-get remove -y -q ntp ntpsec 2>/dev/null || true
 
-echo "[2/6] Pakete aktualisieren und installieren..."
+echo "[2/7] Pakete aktualisieren und installieren..."
 apt-get update -q
 apt-get upgrade -y -q
 apt-get install -y -q \
@@ -55,7 +55,7 @@ apt-get install -y -q \
 
 # --- Chrony konfigurieren ----------------------------------------------------
 
-echo "[3/6] Chrony NTP Server konfigurieren..."
+echo "[3/7] Chrony NTP Server konfigurieren..."
 cat > /etc/chrony/chrony.conf <<'CHRONY_CONF'
 # =======================================================================
 # Chrony NTP Server - time.bauer-group.com
@@ -108,7 +108,7 @@ chronyc makestep
 
 # --- Automatische Updates konfigurieren --------------------------------------
 
-echo "[4/6] Automatische Updates konfigurieren..."
+echo "[4/7] Automatische Updates konfigurieren..."
 cat > /etc/apt/apt.conf.d/50unattended-upgrades <<'UNATTENDED_CONF'
 Unattended-Upgrade::Allowed-Origins {
     "${distro_id}:${distro_codename}";
@@ -172,14 +172,65 @@ systemctl enable apt-daily-upgrade.timer
 
 # --- System-Einstellungen -----------------------------------------------------
 
-echo "[5/6] Hostname, Timezone und Locale setzen..."
+echo "[5/7] Hostname, Timezone und Locale setzen..."
 hostnamectl set-hostname "${NTP_HOSTNAME}"
 timedatectl set-timezone Etc/UTC
 localectl set-locale LANG=en_US.UTF-8
 
+# --- Login-Banner (MOTD) -----------------------------------------------------
+
+echo "[6/7] Login-Banner einrichten..."
+
+# Standard-MOTD aufraeumen (Ubuntu-Werbung etc.)
+chmod -x /etc/update-motd.d/10-help-text 2>/dev/null || true
+chmod -x /etc/update-motd.d/50-motd-news 2>/dev/null || true
+chmod -x /etc/update-motd.d/88-esm-announce 2>/dev/null || true
+chmod -x /etc/update-motd.d/91-contract-ua-esm-status 2>/dev/null || true
+
+cat > /etc/update-motd.d/60-ntp-status <<'MOTD_SCRIPT'
+#!/usr/bin/env bash
+# NTP Server Status - Login Banner
+
+echo ""
+echo "========================================"
+echo "  $(hostname) — NTP Server"
+echo "========================================"
+echo ""
+
+# --- Sync-Status ---
+tracking=$(chronyc tracking 2>/dev/null)
+if [ $? -eq 0 ]; then
+    source=$(echo "$tracking" | awk -F': ' '/^Reference ID/{print $2}')
+    stratum=$(echo "$tracking" | awk -F': ' '/^Stratum/{print $2}')
+    offset=$(echo "$tracking" | awk -F': ' '/^Last offset/{print $2}')
+    leap=$(echo "$tracking" | awk -F': ' '/^Leap status/{print $2}')
+
+    printf "  %-18s %s\n" "Sync-Quelle:" "$source"
+    printf "  %-18s %s\n" "Stratum:" "$stratum"
+    printf "  %-18s %s\n" "Offset:" "$offset"
+    printf "  %-18s %s\n" "Leap-Status:" "$leap"
+else
+    echo "  Chrony nicht erreichbar"
+fi
+
+echo ""
+echo "  Upstream-Quellen:"
+echo "  ----------------------------------------"
+chronyc sources 2>/dev/null | grep '^\^' | while read -r line; do
+    echo "  $line"
+done
+
+echo ""
+printf "  %-18s %s\n" "Wartungsfenster:" "03:00-03:30 UTC"
+printf "  %-18s %s\n" "Chrony-Log:" "/var/log/chrony/"
+echo ""
+MOTD_SCRIPT
+
+chmod +x /etc/update-motd.d/60-ntp-status
+
 # --- Abschluss ---------------------------------------------------------------
 
-echo "[6/6] Verifizierung..."
+echo "[7/7] Verifizierung..."
 echo ""
 echo "============================================="
 echo " Setup abgeschlossen!"
