@@ -52,7 +52,9 @@ apt-get remove -y -q --purge \
     modemmanager \
     udisks2 \
     multipath-tools \
-    policykit-1 \
+    policykit-1 polkitd \
+    packagekit \
+    networkd-dispatcher \
     2>/dev/null || true
 apt-get autoremove -y -q
 

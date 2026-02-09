@@ -207,7 +207,7 @@ runcmd:
   # Standard-NTP-Dienste und unnoetige Pakete entfernen
   - systemctl stop systemd-timesyncd || true
   - systemctl disable systemd-timesyncd || true
-  - apt-get remove -y -q --purge ntp ntpsec snapd modemmanager udisks2 multipath-tools policykit-1 || true
+  - apt-get remove -y -q --purge ntp ntpsec snapd modemmanager udisks2 multipath-tools policykit-1 polkitd packagekit networkd-dispatcher || true
   - apt-get autoremove -y -q
   - rm -rf /snap /var/snap /var/lib/snapd /var/cache/snapd || true
 
