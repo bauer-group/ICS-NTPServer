@@ -6,12 +6,17 @@
 # Ubuntu 24.04+ / Debian 13+ System, falls Cloud-Init nicht verfuegbar ist.
 #
 # Verwendung:
-#   curl -fsSL <url>/install.sh | sudo bash
+#   curl -fsSL https://raw.githubusercontent.com/bauer-group/IP-NTPServer/main/cloud-init/install.sh | sudo bash
 #   oder:
-#   sudo bash install.sh
+#   sudo bash install.sh [HOSTNAME]
+#
+# Parameter:
+#   HOSTNAME  Hostname des Servers (Default: time.bauer-group.com)
 # =============================================================================
 
 set -euo pipefail
+
+NTP_HOSTNAME="${1:-time.bauer-group.com}"
 
 # --- Pruefungen --------------------------------------------------------------
 
@@ -27,13 +32,13 @@ if ! command -v apt-get &>/dev/null; then
 fi
 
 echo "============================================="
-echo " NTP Server Setup - time.bauer-group.com"
+echo " NTP Server Setup - ${NTP_HOSTNAME}"
 echo "============================================="
 echo ""
 
 # --- Pakete installieren -----------------------------------------------------
 
-echo "[1/4] Pakete aktualisieren und installieren..."
+echo "[1/5] Pakete aktualisieren und installieren..."
 export DEBIAN_FRONTEND=noninteractive
 apt-get update -q
 apt-get upgrade -y -q
@@ -45,7 +50,7 @@ apt-get install -y -q \
 
 # --- Chrony konfigurieren ----------------------------------------------------
 
-echo "[2/4] Chrony NTP Server konfigurieren..."
+echo "[2/5] Chrony NTP Server konfigurieren..."
 cat > /etc/chrony/chrony.conf <<'CHRONY_CONF'
 # =======================================================================
 # Chrony NTP Server - time.bauer-group.com
@@ -98,7 +103,7 @@ chronyc makestep
 
 # --- Automatische Updates konfigurieren --------------------------------------
 
-echo "[3/4] Automatische Updates konfigurieren..."
+echo "[3/5] Automatische Updates konfigurieren..."
 cat > /etc/apt/apt.conf.d/50unattended-upgrades <<'UNATTENDED_CONF'
 Unattended-Upgrade::Allowed-Origins {
     "${distro_id}:${distro_codename}";
@@ -160,10 +165,12 @@ systemctl daemon-reload
 systemctl enable apt-daily.timer
 systemctl enable apt-daily-upgrade.timer
 
-# --- Timezone setzen ----------------------------------------------------------
+# --- System-Einstellungen -----------------------------------------------------
 
-echo "[4/4] Timezone auf UTC setzen..."
+echo "[4/5] Hostname, Timezone und Locale setzen..."
+hostnamectl set-hostname "${NTP_HOSTNAME}"
 timedatectl set-timezone Etc/UTC
+localectl set-locale LANG=en_US.UTF-8
 
 # --- Abschluss ---------------------------------------------------------------
 

@@ -20,7 +20,14 @@ cloud-init/user-data.yml
 Alternativ auf einem bestehenden System:
 
 ```bash
-sudo bash cloud-init/install.sh
+# Direktinstall (ohne Download)
+curl -fsSL https://raw.githubusercontent.com/bauer-group/IP-NTPServer/main/cloud-init/install.sh | sudo bash
+
+# Mit eigenem Hostname
+curl -fsSL https://raw.githubusercontent.com/bauer-group/IP-NTPServer/main/cloud-init/install.sh | sudo bash -s -- ntp.example.com
+
+# Oder lokal
+sudo bash cloud-init/install.sh [HOSTNAME]
 ```
 
 Zielplattform: Ubuntu 24.04+ / Debian 13+
